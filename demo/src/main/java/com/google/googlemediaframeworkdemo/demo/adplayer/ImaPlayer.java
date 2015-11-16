@@ -56,7 +56,7 @@ import java.util.List;
 public class ImaPlayer {
 
   private static String PLAYER_TYPE = "google/gmf-android";
-  private static String PLAYER_VERSION = "0.1.2";
+  private static String PLAYER_VERSION = "0.2.0";
 
   /**
    * The activity that is displaying this video player.
@@ -131,6 +131,11 @@ public class ImaPlayer {
   private ViewGroup.LayoutParams originalContainerLayoutParams;
 
   /**
+   * A flag to indicate whether the ads has been shown.
+   */
+  private boolean adsShown;
+
+  /**
    * Notifies callbacks when the ad finishes.
    */
   private final ExoplayerWrapper.PlaybackListener adPlaybackListener
@@ -160,7 +165,7 @@ public class ImaPlayer {
     }
 
     @Override
-    public void onVideoSizeChanged(int width, int height, float pixelWidthHeightRatio) {
+    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
       // No need to respond to size changes here.
     }
   };
@@ -196,9 +201,10 @@ public class ImaPlayer {
        * We don't respond to size changes.
        * @param width The new width of the player.
        * @param height The new height of the player.
+       * @param unappliedRotationDegrees The new rotation angle of the player thats not applied.
        */
       @Override
-      public void onVideoSizeChanged(int width, int height, float pixelWidthHeightRatio) {
+      public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
 
       }
     };
@@ -375,6 +381,12 @@ public class ImaPlayer {
         autoplay);
 
     contentPlayer.addPlaybackListener(contentPlaybackListener);
+    contentPlayer.setPlayCallback(new PlaybackControlLayer.PlayCallback() {
+      @Override
+      public void onPlay() {
+        handlePlay();
+      }
+    });
 
     // Move the content player's surface layer to the background so that the ad player's surface
     // layer can be overlaid on top of it during ad playback.
@@ -699,4 +711,14 @@ public class ImaPlayer {
     adsLoader.requestAds(buildAdsRequest(adTagUrl.toString()));
   }
 
+  /**
+   * handle play callback, to request IMA ads
+   */
+  private void handlePlay() {
+    if (!adsShown && adTagUrl != null) {
+      contentPlayer.pause();
+      requestAd();
+      adsShown = true;
+    }
+  }
 }
